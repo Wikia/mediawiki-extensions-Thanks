@@ -4,8 +4,6 @@ namespace MediaWiki\Extension\Thanks;
 
 use ApiBase;
 use DatabaseLogEntry;
-use EchoDiscussionParser;
-use EchoEvent;
 use LogEntry;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Revision\RevisionRecord;
@@ -67,7 +65,6 @@ class ApiCoreThank extends ApiThank {
 		}
 		if ( $type === 'rev' ) {
 			$revision = $this->getRevisionFromId( $id );
-			$excerpt = EchoDiscussionParser::getEditExcerpt( $revision, $this->getLanguage() );
 			$title = $this->getTitleFromRevision( $revision );
 			$this->dieOnUserBlockedFromTitle( $user, $title );
 
@@ -90,7 +87,7 @@ class ApiCoreThank extends ApiThank {
 				$user,
 				$type,
 				$id,
-				$excerpt,
+				'', // We don't need the excerpt for our notification, and it would come from Echo
 				$recipient,
 				$this->getSourceFromParams( $params ),
 				$title,
@@ -221,8 +218,8 @@ class ApiCoreThank extends ApiThank {
 			return;
 		}
 
-		// Create the notification via Echo extension
-		EchoEvent::create( [
+		// Create notification via hook
+		$this->getHookContainer()->run( 'ThankCreated', [
 			'type' => 'edit-thank',
 			'title' => $title,
 			'extra' => [
