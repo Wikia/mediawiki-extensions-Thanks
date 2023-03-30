@@ -8,9 +8,6 @@ use MediaWiki\Api\ApiBase;
 use MediaWiki\Api\ApiMain;
 use MediaWiki\Extension\Notifications\DiscussionParser;
 use MediaWiki\Extension\Notifications\Model\Event;
-use MediaWiki\Extension\Thanks\Storage\Exceptions\InvalidLogType;
-use MediaWiki\Extension\Thanks\Storage\Exceptions\LogDeleted;
-use MediaWiki\Extension\Thanks\Storage\LogStore;
 use MediaWiki\Permissions\PermissionManager;
 use MediaWiki\Revision\RevisionRecord;
 use MediaWiki\Revision\RevisionStore;
@@ -115,7 +112,7 @@ class ApiCoreThank extends ApiThank {
 				$user,
 				$type,
 				$id,
-				$excerpt,
+				'', // We don't need the excerpt for our notification, and it would come from Echo
 				$recipient,
 				$this->getSourceFromParams( $params ),
 				$title,
@@ -241,8 +238,8 @@ class ApiCoreThank extends ApiThank {
 			return;
 		}
 
-		// Create the notification via Echo extension
-		Event::create( [
+		// Create notification via hook
+		$this->getHookContainer()->run( 'ThankCreated', [
 			'type' => 'edit-thank',
 			'title' => $title,
 			'extra' => [

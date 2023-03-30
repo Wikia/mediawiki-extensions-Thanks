@@ -11,10 +11,7 @@
 	"license-name": "MIT",
 	"type": "other",
 	"requires": {
-		"MediaWiki": ">= 1.43",
-		"extensions": {
-			"Echo": "*"
-		}
+		"MediaWiki": ">= 1.43"
 	},
 	"DefaultUserOptions": {
 		"echo-subscriptions-web-edit-thank": true,

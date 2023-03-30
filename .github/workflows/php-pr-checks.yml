@@ -1,0 +1,82 @@
+name: PHPUnit / PHPCS / Phan
+on:
+  pull_request:
+    branches: '**'
+
+  push:
+    branches: [ master, MW_1_37, REL1_39 ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        php_version: ['8.0']
+        mw: ['REL1_39']
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php_version }}
+          # We don't run any coverage, so we should set this parameter to none
+          # as this will disable xdebug which slows all processes significantly
+          coverage: none
+          extensions: ast
+      - uses: actions/checkout@v3
+
+      - name: Checkout Mediawiki
+        uses: actions/checkout@v3
+        with:
+          repository: wikimedia/mediawiki
+          path: mediawiki
+          ref: ${{ matrix.mw }}
+
+      - name: Checkout Echo (dependency) extension
+        uses: actions/checkout@v3
+        with:
+          repository: wikimedia/mediawiki-extensions-Echo
+          path: mediawiki/extensions/Echo
+
+      - name: Checkout Flow (implicit dependency) extension
+        uses: actions/checkout@v3
+        with:
+          repository: wikimedia/mediawiki-extensions-Flow
+          path: mediawiki/extensions/Flow
+
+      - name: Checkout MobileFrontend (implicit dependency) extension
+        uses: actions/checkout@v3
+        with:
+          repository: wikimedia/mediawiki-extensions-MobileFrontend
+          path: mediawiki/extensions/MobileFrontend
+
+      - name: Checkout CheckUser (implicit dependency) extension
+        uses: actions/checkout@v3
+        with:
+          repository: wikimedia/mediawiki-extensions-CheckUser
+          path: mediawiki/extensions/CheckUser
+
+      - name: Checkout Thanks extension
+        uses: actions/checkout@v2
+        with:
+          path: mediawiki/extensions/Thanks
+
+      - name: Cache Composer packages
+        id: composer-cache
+        uses: actions/cache@v3
+        with:
+          path: vendor
+          key: ${{ runner.os }}-php-v3-${{ hashFiles('**/composer.lock') }}
+
+      - name: Install composer dependencies
+        if: steps.composer-cache.outputs.cache-hit != 'true'
+        working-directory: ./mediawiki/extensions/Thanks
+        run: composer install --prefer-dist --no-progress
+
+      - name: Run PHPCS
+        working-directory: ./mediawiki/extensions/Thanks
+        run: composer phpcs
+
+      - name: Run Phan static analysis
+        working-directory: ./mediawiki/extensions/Thanks
+        run: composer phan
