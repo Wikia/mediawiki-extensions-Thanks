@@ -16,6 +16,7 @@ use LogEventsList;
 use LogPage;
 use MediaWiki\Linker\LinkTarget;
 use MediaWiki\MediaWikiServices;
+use MediaWiki\Preferences\Hook\GetPreferencesHook;
 use MediaWiki\Revision\RevisionRecord;
 use MediaWiki\User\UserIdentity;
 use MobileContext;
@@ -33,7 +34,7 @@ use WikiPage;
  * @file
  * @ingroup Extensions
  */
-class Hooks {
+class Hooks implements GetPreferencesHook {
 
 	/**
 	 * Handler for the HistoryTools hook
@@ -493,5 +494,44 @@ class Hooks {
 
 		// Add parentheses to match what's done with Thanks in revision lists and diff displays.
 		$ret .= ' ' . wfMessage( 'parentheses' )->rawParams( $thankLink )->escaped();
+	}
+
+	public function onGetPreferences( $user, &$preferences ) {
+		$newPreferences = [];
+		foreach ($preferences as $key => $value) {
+			$newPreferences[$key] = $value;
+			if ($key === 'enotifdiscussionsmentions') {
+				$newPreferences['enotifthanks'] = [
+					"type" => "toggle",
+					"section" => "emailv2/email-me-v2",
+					"label-message" =>"tog-enotif-thanks-v2",
+					"disabled" => false
+				];
+			}
+			if ( $key == 'founderemails-complete-digest') {
+				$newPreferences['onsite-thanks-info'] = [
+					'type' => 'info',
+					'label-message' => 'section-notifications-help',
+					'section' => 'emailv2/web-notification',
+					'cssclass' => 'preferences-section-info',
+				];
+
+				$newPreferences["onsite-thanks-notify"] = [
+					'type' => 'info',
+					'label-message' => 'prefs-notify-me',
+					'section' => 'emailv2/web-notification',
+					'cssclass' => 'preferences-section-subheader',
+				];
+
+				$newPreferences['onsite-thanks'] = [
+					'type' => 'toggle',
+					'label-message' => 'tog-onsite-thanks',
+					'section' => 'emailv2/web-notification',
+					'disabled' => false
+				];
+			}
+		}
+
+		$preferences = $newPreferences;
 	}
 }

@@ -161,6 +161,11 @@
 			"ext.thanks.mobilediff"
 		]
 	},
+	"HookHandlers": {
+		"main": {
+			"class": "MediaWiki\\Extension\\Thanks\\Hooks"
+		}
+	},
 	"Hooks": {
 		"ApiMain::moduleManager": "MediaWiki\\Extension\\Thanks\\Hooks::onApiMainModuleManager",
 		"BeforeCreateEchoEvent": "MediaWiki\\Extension\\Thanks\\Hooks::onBeforeCreateEchoEvent",
@@ -175,7 +180,8 @@
 		"HistoryTools": "MediaWiki\\Extension\\Thanks\\Hooks::onHistoryTools",
 		"LocalUserCreated": "MediaWiki\\Extension\\Thanks\\Hooks::onAccountCreated",
 		"LogEventsListLineEnding": "MediaWiki\\Extension\\Thanks\\Hooks::onLogEventsListLineEnding",
-		"PageHistoryBeforeList": "MediaWiki\\Extension\\Thanks\\Hooks::onPageHistoryBeforeList"
+		"PageHistoryBeforeList": "MediaWiki\\Extension\\Thanks\\Hooks::onPageHistoryBeforeList",
+		"GetPreferences": "main"
 	},
 	"config": {
 		"ThanksSendToBots": {
