@@ -494,4 +494,15 @@ class Hooks {
 		// Add parentheses to match what's done with Thanks in revision lists and diff displays.
 		$ret .= ' ' . wfMessage( 'parentheses' )->rawParams( $thankLink )->escaped();
 	}
+
+	public static function onEnhancedChangesListModifyLineData(
+		$changesList,
+		&$data,
+		$block,
+		$rc,
+		&$classes,
+		&$attribs
+	): void {
+		$element = 1;
+	}
 }
