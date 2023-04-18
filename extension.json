@@ -152,8 +152,9 @@
 		"LogEventsListLineEnding": "main",
 		"PageHistoryBeforeList": "main",
 		"PageHistoryPager::doBatchLookups": "main",
-		"ChangesListInitRows": "main"
-	},
+		"ChangesListInitRows": "main",
+		"EnhancedChangesListModifyLineData": "MediaWiki\\Extension\\Thanks\\Hooks::onEnhancedChangesListModifyLineData"
+    },
 	"HookHandlers": {
 		"main": {
 			"class": "MediaWiki\\Extension\\Thanks\\Hooks",
