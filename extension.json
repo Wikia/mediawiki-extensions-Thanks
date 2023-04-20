@@ -185,7 +185,8 @@
 		"LogEventsListLineEnding": "MediaWiki\\Extension\\Thanks\\Hooks::onLogEventsListLineEnding",
 		"PageHistoryBeforeList": "MediaWiki\\Extension\\Thanks\\Hooks::onPageHistoryBeforeList",
 		"EnhancedChangesListModifyLineData": "MediaWiki\\Extension\\Thanks\\Hooks::onEnhancedChangesListModifyLineData",
-		"EnhancedChangesListModifyBlockLineData": "MediaWiki\\Extension\\Thanks\\Hooks::onEnhancedChangesListModifyBlockLineData"
+		"EnhancedChangesListModifyBlockLineData": "MediaWiki\\Extension\\Thanks\\Hooks::onEnhancedChangesListModifyBlockLineData",
+		"ContributionsLineEnding": "MediaWiki\\Extension\\Thanks\\Hooks::onContributionsLineEnding"
 	},
 	"config": {
 		"ThanksSendToBots": {

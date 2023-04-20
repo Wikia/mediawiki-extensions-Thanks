@@ -6,6 +6,7 @@ use ApiModuleManager;
 use Article;
 use CategoryPage;
 use ConfigException;
+use ContribsPager;
 use DatabaseLogEntry;
 use DifferenceEngine;
 use EchoEvent;
@@ -25,6 +26,7 @@ use RecentChange;
 use RequestContext;
 use Skin;
 use SpecialPage;
+use stdClass;
 use Title;
 use User;
 use WikiPage;
@@ -551,5 +553,37 @@ class Hooks {
 			$data,
 			$changesList->getUser()
 		);
+	}
+
+	/**
+	 * Fandom change UGC-4012 - Add thank link to Special:Contributions page
+	 * @param ContribsPager $pager
+	 * @param string &$line
+	 * @param stdClass $row
+	 * @param array &$classes
+	 * @param array &$attribs
+	 * @return void
+	 */
+	public static function onContributionsLineEnding(
+		ContribsPager $pager,
+		string &$line,
+		stdClass $row,
+		array &$classes,
+		array &$attribs
+	): void {
+		$out = RequestContext::getMain()->getOutput();
+		if ( !in_array( 'ext.thanks.corethank', $out->getOutput()->getModules() ) ) {
+			self::addThanksModule( $out->getOutput() );
+		}
+		$revLookup = MediaWikiServices::getInstance()->getRevisionLookup();
+		$links = [];
+		self::insertThankLink(
+			$revLookup->getRevisionById( $row->rev_id ),
+			$links,
+			$out->getUser()
+		);
+		if ( isset( $links[0] ) ) {
+			$line .= $links[0];
+		}
 	}
 }
