@@ -176,7 +176,8 @@
 		"LocalUserCreated": "MediaWiki\\Extension\\Thanks\\Hooks::onAccountCreated",
 		"LogEventsListLineEnding": "MediaWiki\\Extension\\Thanks\\Hooks::onLogEventsListLineEnding",
 		"PageHistoryBeforeList": "MediaWiki\\Extension\\Thanks\\Hooks::onPageHistoryBeforeList",
-		"EnhancedChangesListModifyLineData": "MediaWiki\\Extension\\Thanks\\Hooks::onEnhancedChangesListModifyLineData"
+		"EnhancedChangesListModifyLineData": "MediaWiki\\Extension\\Thanks\\Hooks::onEnhancedChangesListModifyLineData",
+		"EnhancedChangesListModifyBlockLineData": "MediaWiki\\Extension\\Thanks\\Hooks::onEnhancedChangesListModifyBlockLineData"
 	},
 	"config": {
 		"ThanksSendToBots": {
