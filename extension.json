@@ -161,7 +161,8 @@
 		"PageHistoryBeforeList": "main",
 		"PageHistoryPager::doBatchLookups": "main",
 		"ChangesListInitRows": "main",
-		"EnhancedChangesListModifyLineData": "MediaWiki\\Extension\\Thanks\\Hooks::onEnhancedChangesListModifyLineData"
+		"EnhancedChangesListModifyLineData": "MediaWiki\\Extension\\Thanks\\Hooks::onEnhancedChangesListModifyLineData",
+		"ContributionsLineEnding": "MediaWiki\\Extension\\Thanks\\Hooks::onContributionsLineEnding"
     },
 	"HookHandlers": {
 		"main": {

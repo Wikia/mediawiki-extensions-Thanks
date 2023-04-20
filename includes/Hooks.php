@@ -5,6 +5,9 @@
 namespace MediaWiki\Extension\Thanks;
 
 use Article;
+use CategoryPage;
+use ConfigException;
+use ContribsPager;
 use DatabaseLogEntry;
 use DifferenceEngine;
 use EchoEvent;
@@ -51,6 +54,11 @@ use OutputPage;
 use RecentChange;
 use RequestContext;
 use Skin;
+use SpecialPage;
+use stdClass;
+use Title;
+use User;
+use WikiPage;
 
 /**
  * Hooks for Thanks extension
@@ -477,7 +485,7 @@ class Hooks implements
 		// or the log entry.
 		$type = $entry->getAssociatedRevId() ? 'revision' : 'log';
 		$id = $entry->getAssociatedRevId() ?: $entry->getId();
-		$thankLink = $this->generateThankElement( $id, $user, $recipient, $type );
+		$thankLink = self::generateThankElement( $id, $user, $recipient, $type );
 
 		// Add parentheses to match what's done with Thanks in revision lists and diff displays.
 		$ret .= ' ' . wfMessage( 'parentheses' )->rawParams( $thankLink )->escaped();
@@ -537,5 +545,37 @@ class Hooks implements
 			$data,
 			$changesList->getUser()
 		);
+	}
+
+	/**
+	 * Fandom change UGC-4012 - Add thank link to Special:Contributions page
+	 * @param ContribsPager $pager
+	 * @param string &$line
+	 * @param stdClass $row
+	 * @param array &$classes
+	 * @param array &$attribs
+	 * @return void
+	 */
+	public static function onContributionsLineEnding(
+		ContribsPager $pager,
+		string &$line,
+		stdClass $row,
+		array &$classes,
+		array &$attribs
+	): void {
+		$out = RequestContext::getMain()->getOutput();
+		if ( !in_array( 'ext.thanks.corethank', $out->getOutput()->getModules() ) ) {
+			self::addThanksModule( $out->getOutput() );
+		}
+		$revLookup = MediaWikiServices::getInstance()->getRevisionLookup();
+		$links = [];
+		self::insertThankLink(
+			$revLookup->getRevisionById( $row->rev_id ),
+			$links,
+			$out->getUser()
+		);
+		if ( isset( $links[0] ) ) {
+			$line .= $links[0];
+		}
 	}
 }
