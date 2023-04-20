@@ -489,21 +489,21 @@ class Hooks implements
 	 * @link https://www.mediawiki.org/wiki/Manual:EnhancedChangesListModifyLineDataHook.php
 	 * @param EnhancedChangesList $changesList
 	 * @param array &$data
-	 * @param $block
+	 * @param RecentChange[] $block
 	 * @param RecentChange $rc
-	 * @param &$classes
-	 * @param &$attribs
+	 * @param string[] &$classes
+	 * @param string[] &$attribs
 	 * @return void
 	 */
 	public static function onEnhancedChangesListModifyLineData(
 		EnhancedChangesList $changesList,
 		array &$data,
-		$block,
+		array $block,
 		RecentChange $rc,
-		&$classes,
-		&$attribs
+		array &$classes,
+		array &$attribs
 	): void {
-		if ( in_array( 'ext.thanks.corethank', $changesList->getOutput()->getModules() ) === false ) {
+		if ( !in_array( 'ext.thanks.corethank', $changesList->getOutput()->getModules() ) ) {
 			self::addThanksModule( $changesList->getOutput() );
 		}
 		$revLookup = MediaWikiServices::getInstance()->getRevisionLookup();
@@ -528,7 +528,7 @@ class Hooks implements
 		array &$data,
 		RecentChange $rc
 	): void {
-		if ( in_array( 'ext.thanks.corethank', $changesList->getOutput()->getModules() ) === false ) {
+		if ( !in_array( 'ext.thanks.corethank', $changesList->getOutput()->getModules() ) ) {
 			self::addThanksModule( $changesList->getOutput() );
 		}
 		$revLookup = MediaWikiServices::getInstance()->getRevisionLookup();
