@@ -7,6 +7,11 @@ namespace MediaWiki\Extension\Thanks;
 use Article;
 use DatabaseLogEntry;
 use DifferenceEngine;
+use EchoEvent;
+use EnhancedChangesList;
+use ExtensionRegistry;
+use Html;
+use ImagePage;
 use LogEventsList;
 use LogPage;
 use MediaWiki\Api\ApiModuleManager;
@@ -41,6 +46,10 @@ use MediaWiki\User\Options\UserOptionsManager;
 use MediaWiki\User\User;
 use MediaWiki\User\UserFactory;
 use MediaWiki\User\UserIdentity;
+use MobileContext;
+use OutputPage;
+use RecentChange;
+use RequestContext;
 use Skin;
 
 /**
@@ -474,14 +483,59 @@ class Hooks implements
 		$ret .= ' ' . wfMessage( 'parentheses' )->rawParams( $thankLink )->escaped();
 	}
 
+	/**
+	 * Fandom change UGC-4012 - Add thank link to the recent changes list
+	 *
+	 * @link https://www.mediawiki.org/wiki/Manual:EnhancedChangesListModifyLineDataHook.php
+	 * @param EnhancedChangesList $changesList
+	 * @param array &$data
+	 * @param $block
+	 * @param RecentChange $rc
+	 * @param &$classes
+	 * @param &$attribs
+	 * @return void
+	 */
 	public static function onEnhancedChangesListModifyLineData(
-		$changesList,
-		&$data,
+		EnhancedChangesList $changesList,
+		array &$data,
 		$block,
-		$rc,
+		RecentChange $rc,
 		&$classes,
 		&$attribs
 	): void {
-		$element = 1;
+		if ( in_array( 'ext.thanks.corethank', $changesList->getOutput()->getModules() ) === false ) {
+			self::addThanksModule( $changesList->getOutput() );
+		}
+		$revLookup = MediaWikiServices::getInstance()->getRevisionLookup();
+		self::insertThankLink(
+			$revLookup->getRevisionById( $rc->getAttribute( 'rc_this_oldid' ) ),
+			$data,
+			$changesList->getUser()
+		);
+	}
+
+	/**
+	 * Fandom change UGC-4012 - Add thank link to the recent changes list
+	 *
+	 * @link https://www.mediawiki.org/wiki/Manual:EnhancedChangesListModifyBlockLineDataHook.php
+	 * @param EnhancedChangesList $changesList
+	 * @param array &$data
+	 * @param RecentChange $rc
+	 * @return void
+	 */
+	public static function onEnhancedChangesListModifyBlockLineData(
+		EnhancedChangesList $changesList,
+		array &$data,
+		RecentChange $rc
+	): void {
+		if ( in_array( 'ext.thanks.corethank', $changesList->getOutput()->getModules() ) === false ) {
+			self::addThanksModule( $changesList->getOutput() );
+		}
+		$revLookup = MediaWikiServices::getInstance()->getRevisionLookup();
+		self::insertThankLink(
+			$revLookup->getRevisionById( $rc->getAttribute( 'rc_this_oldid' ) ),
+			$data,
+			$changesList->getUser()
+		);
 	}
 }
