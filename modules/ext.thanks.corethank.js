@@ -54,8 +54,12 @@
 		( new mw.Api() ).postWithToken( 'csrf', apiParams )
 			.then(
 				// Success
-				() => {
-					$thankElement.before( mw.message( 'thanks-thanked', mw.user, $thankLink.data( 'recipient-gender' ) ).escaped() );
+                () => {
+					// FANDOM change. Gave the "before" element a class, so we can style it.
+					$thankElement.before( `<span class="mw-thanks-thank-confirmation">
+						${mw.message( 'thanks-thanked', mw.user, $thankLink.data( 'recipient-gender' ) ).escaped()}
+					</span>`);
+					// FANDOM change end.
 					$thankElement.remove();
 					mw.thanks.thanked.push( $thankLink.attr( attrName ) );
 				},
