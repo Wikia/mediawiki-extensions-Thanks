@@ -173,7 +173,6 @@
 		"ApiMain::moduleManager": "MediaWiki\\Extension\\Thanks\\Hooks::onApiMainModuleManager",
 		"BeforeCreateEchoEvent": "MediaWiki\\Extension\\Thanks\\Hooks::onBeforeCreateEchoEvent",
 		"BeforePageDisplay": "MediaWiki\\Extension\\Thanks\\Hooks::onBeforePageDisplay",
-		"BeforeSpecialMobileDiffDisplay": "MediaWiki\\Extension\\Thanks\\Hooks::onBeforeSpecialMobileDiffDisplay",
 		"DiffTools": "MediaWiki\\Extension\\Thanks\\Hooks::onDiffTools",
 		"DifferenceEngineViewHeader": "MediaWiki\\Extension\\Thanks\\Hooks::onDifferenceEngineViewHeader",
 		"EchoGetBundleRules": "MediaWiki\\Extension\\Thanks\\Hooks::onEchoGetBundleRules",
