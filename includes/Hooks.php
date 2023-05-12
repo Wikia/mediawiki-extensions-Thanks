@@ -516,7 +516,7 @@ class Hooks implements
 		}
 		$revLookup = MediaWikiServices::getInstance()->getRevisionLookup();
 		$revision = $revLookup->getRevisionById( $rc->getAttribute( 'rc_this_oldid' ) );
-		if ($revision) {
+		if ( $revision ) {
 			self::insertThankLink(
 				$revision,
 				$data,
