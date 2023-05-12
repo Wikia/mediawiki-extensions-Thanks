@@ -523,11 +523,14 @@ class Hooks {
 			self::addThanksModule( $changesList->getOutput() );
 		}
 		$revLookup = MediaWikiServices::getInstance()->getRevisionLookup();
-		self::insertThankLink(
-			$revLookup->getRevisionById( $rc->getAttribute( 'rc_this_oldid' ) ),
-			$data,
-			$changesList->getUser()
-		);
+		$revision = $revLookup->getRevisionById( $rc->getAttribute( 'rc_this_oldid' ) );
+		if ($revision) {
+			self::insertThankLink(
+				$revision,
+				$data,
+				$changesList->getUser()
+			);
+		}
 	}
 
 	/**
@@ -548,11 +551,14 @@ class Hooks {
 			self::addThanksModule( $changesList->getOutput() );
 		}
 		$revLookup = MediaWikiServices::getInstance()->getRevisionLookup();
-		self::insertThankLink(
-			$revLookup->getRevisionById( $rc->getAttribute( 'rc_this_oldid' ) ),
-			$data,
-			$changesList->getUser()
-		);
+		$revision = $revLookup->getRevisionById( $rc->getAttribute( 'rc_this_oldid' ) );
+		if ( $revision ) {
+			self::insertThankLink(
+				$revLookup->getRevisionById( $rc->getAttribute( 'rc_this_oldid' ) ),
+				$data,
+				$changesList->getUser()
+			);
+		}
 	}
 
 	/**
