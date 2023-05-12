@@ -64,7 +64,7 @@
 		var timeout,
 			button = new Button( {
 				progressive: true,
-				additionalClassNames: 'mw-mf-action-button'
+				additionalClassNames: 'mw-thanks-mobile-diff-thank-button mw-mf-action-button',
 			} ),
 			$button = button.$el;
 
@@ -136,13 +136,13 @@
 
 		$thankBtn = createThankLink( username, rev, gender );
 		if ( $thankBtn ) {
-			$thankBtn.prependTo( $container );
+			$thankBtn.appendTo( $container );
 		}
 
 	}
 
 	$( function () {
-		init( $( '.mw-mf-user' ), $( '#mw-mf-userinfo' ) );
+		init( $( '.mw-mf-user' ), $( '#mw-mf-userinfo > .post-content' ) );
 	} );
 
 	// Expose for testing purposes

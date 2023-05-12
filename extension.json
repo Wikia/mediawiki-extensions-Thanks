@@ -73,6 +73,10 @@
 			"dependencies": [
 				"mediawiki.cookie",
 				"mediawiki.api"
+			],
+			"targets": [
+				"desktop",
+				"mobile"
 			]
 		},
 		"ext.thanks.corethank": {
@@ -98,6 +102,10 @@
 				"mediawiki.api",
 				"jquery.confirmable",
 				"ext.thanks"
+			],
+			"targets": [
+				"desktop",
+				"mobile"
 			]
 		},
 		"ext.thanks.mobilediff": {
@@ -165,7 +173,6 @@
 		"ApiMain::moduleManager": "MediaWiki\\Extension\\Thanks\\Hooks::onApiMainModuleManager",
 		"BeforeCreateEchoEvent": "MediaWiki\\Extension\\Thanks\\Hooks::onBeforeCreateEchoEvent",
 		"BeforePageDisplay": "MediaWiki\\Extension\\Thanks\\Hooks::onBeforePageDisplay",
-		"BeforeSpecialMobileDiffDisplay": "MediaWiki\\Extension\\Thanks\\Hooks::onBeforeSpecialMobileDiffDisplay",
 		"DiffTools": "MediaWiki\\Extension\\Thanks\\Hooks::onDiffTools",
 		"DifferenceEngineViewHeader": "MediaWiki\\Extension\\Thanks\\Hooks::onDifferenceEngineViewHeader",
 		"EchoGetBundleRules": "MediaWiki\\Extension\\Thanks\\Hooks::onEchoGetBundleRules",
@@ -175,7 +182,10 @@
 		"HistoryTools": "MediaWiki\\Extension\\Thanks\\Hooks::onHistoryTools",
 		"LocalUserCreated": "MediaWiki\\Extension\\Thanks\\Hooks::onAccountCreated",
 		"LogEventsListLineEnding": "MediaWiki\\Extension\\Thanks\\Hooks::onLogEventsListLineEnding",
-		"PageHistoryBeforeList": "MediaWiki\\Extension\\Thanks\\Hooks::onPageHistoryBeforeList"
+		"PageHistoryBeforeList": "MediaWiki\\Extension\\Thanks\\Hooks::onPageHistoryBeforeList",
+		"EnhancedChangesListModifyLineData": "MediaWiki\\Extension\\Thanks\\Hooks::onEnhancedChangesListModifyLineData",
+		"EnhancedChangesListModifyBlockLineData": "MediaWiki\\Extension\\Thanks\\Hooks::onEnhancedChangesListModifyBlockLineData",
+		"ContributionsLineEnding": "MediaWiki\\Extension\\Thanks\\Hooks::onContributionsLineEnding"
 	},
 	"config": {
 		"ThanksSendToBots": {

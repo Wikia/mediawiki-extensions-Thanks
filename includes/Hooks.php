@@ -6,9 +6,11 @@ use ApiModuleManager;
 use Article;
 use CategoryPage;
 use ConfigException;
+use ContribsPager;
 use DatabaseLogEntry;
 use DifferenceEngine;
 use EchoEvent;
+use EnhancedChangesList;
 use ExtensionRegistry;
 use Html;
 use ImagePage;
@@ -20,9 +22,11 @@ use MediaWiki\Revision\RevisionRecord;
 use MediaWiki\User\UserIdentity;
 use MobileContext;
 use OutputPage;
+use RecentChange;
 use RequestContext;
 use Skin;
 use SpecialPage;
+use stdClass;
 use Title;
 use User;
 use WikiPage;
@@ -493,5 +497,93 @@ class Hooks {
 
 		// Add parentheses to match what's done with Thanks in revision lists and diff displays.
 		$ret .= ' ' . wfMessage( 'parentheses' )->rawParams( $thankLink )->escaped();
+	}
+
+	/**
+	 * Fandom change UGC-4012 - Add thank link to the recent changes list
+	 *
+	 * @link https://www.mediawiki.org/wiki/Manual:EnhancedChangesListModifyLineDataHook.php
+	 * @param EnhancedChangesList $changesList
+	 * @param array &$data
+	 * @param RecentChange[] $block
+	 * @param RecentChange $rc
+	 * @param string[] &$classes
+	 * @param string[] &$attribs
+	 * @return void
+	 */
+	public static function onEnhancedChangesListModifyLineData(
+		EnhancedChangesList $changesList,
+		array &$data,
+		array $block,
+		RecentChange $rc,
+		array &$classes,
+		array &$attribs
+	): void {
+		if ( !in_array( 'ext.thanks.corethank', $changesList->getOutput()->getModules() ) ) {
+			self::addThanksModule( $changesList->getOutput() );
+		}
+		$revLookup = MediaWikiServices::getInstance()->getRevisionLookup();
+		self::insertThankLink(
+			$revLookup->getRevisionById( $rc->getAttribute( 'rc_this_oldid' ) ),
+			$data,
+			$changesList->getUser()
+		);
+	}
+
+	/**
+	 * Fandom change UGC-4012 - Add thank link to the recent changes list
+	 *
+	 * @link https://www.mediawiki.org/wiki/Manual:EnhancedChangesListModifyBlockLineDataHook.php
+	 * @param EnhancedChangesList $changesList
+	 * @param array &$data
+	 * @param RecentChange $rc
+	 * @return void
+	 */
+	public static function onEnhancedChangesListModifyBlockLineData(
+		EnhancedChangesList $changesList,
+		array &$data,
+		RecentChange $rc
+	): void {
+		if ( !in_array( 'ext.thanks.corethank', $changesList->getOutput()->getModules() ) ) {
+			self::addThanksModule( $changesList->getOutput() );
+		}
+		$revLookup = MediaWikiServices::getInstance()->getRevisionLookup();
+		self::insertThankLink(
+			$revLookup->getRevisionById( $rc->getAttribute( 'rc_this_oldid' ) ),
+			$data,
+			$changesList->getUser()
+		);
+	}
+
+	/**
+	 * Fandom change UGC-4012 - Add thank link to Special:Contributions page
+	 * @param ContribsPager $pager
+	 * @param string &$line
+	 * @param stdClass $row
+	 * @param array &$classes
+	 * @param array &$attribs
+	 * @return void
+	 */
+	public static function onContributionsLineEnding(
+		ContribsPager $pager,
+		string &$line,
+		stdClass $row,
+		array &$classes,
+		array &$attribs
+	): void {
+		$out = RequestContext::getMain()->getOutput();
+		if ( !in_array( 'ext.thanks.corethank', $out->getOutput()->getModules() ) ) {
+			self::addThanksModule( $out->getOutput() );
+		}
+		$revLookup = MediaWikiServices::getInstance()->getRevisionLookup();
+		$links = [];
+		self::insertThankLink(
+			$revLookup->getRevisionById( $row->rev_id ),
+			$links,
+			$out->getUser()
+		);
+		if ( isset( $links[0] ) ) {
+			$line .= $links[0];
+		}
 	}
 }
