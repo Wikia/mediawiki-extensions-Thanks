@@ -612,6 +612,30 @@ class Hooks implements
 		}
 	}
 
+	public static function onOldChangesListRecentChangesLine(
+		OldChangesList $changesList,
+		&$s,
+		$rc,
+	) {
+		if ( !in_array( 'ext.thanks.corethank', $changesList->getOutput()->getModules() ) ) {
+			self::addThanksModule( $changesList->getOutput() );
+		}
+		$revLookup = MediaWikiServices::getInstance()->getRevisionLookup();
+		$revision = $revLookup->getRevisionById( $rc->getAttribute( 'rc_this_oldid' ) );
+		if ( $revision ) {
+			$holder = [];
+			self::insertThankLink(
+				$revision,
+				$holder,
+				$changesList->getUser()
+			);
+
+			if ( count( $holder ) ) {
+				$s .= ' ' . $holder[0];
+			}
+		}
+	}
+
 	/**
 	 * Fandom change UGC-4012 - Add thank link to the recent changes list
 	 *
