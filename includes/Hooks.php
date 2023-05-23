@@ -50,6 +50,7 @@ use MediaWiki\User\User;
 use MediaWiki\User\UserFactory;
 use MediaWiki\User\UserIdentity;
 use MobileContext;
+use OldChangesList;
 use OutputPage;
 use RecentChange;
 use RequestContext;
@@ -522,6 +523,30 @@ class Hooks implements
 				$data,
 				$changesList->getUser()
 			);
+		}
+	}
+
+	public static function onOldChangesListRecentChangesLine(
+		OldChangesList $changesList,
+		&$s,
+		$rc,
+	) {
+		if ( !in_array( 'ext.thanks.corethank', $changesList->getOutput()->getModules() ) ) {
+			self::addThanksModule( $changesList->getOutput() );
+		}
+		$revLookup = MediaWikiServices::getInstance()->getRevisionLookup();
+		$revision = $revLookup->getRevisionById( $rc->getAttribute( 'rc_this_oldid' ) );
+		if ( $revision ) {
+			$holder = [];
+			self::insertThankLink(
+				$revision,
+				$holder,
+				$changesList->getUser()
+			);
+
+			if ( count( $holder ) ) {
+				$s .= ' ' . $holder[0];
+			}
 		}
 	}
 
