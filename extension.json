@@ -184,6 +184,7 @@
 		"LogEventsListLineEnding": "MediaWiki\\Extension\\Thanks\\Hooks::onLogEventsListLineEnding",
 		"PageHistoryBeforeList": "MediaWiki\\Extension\\Thanks\\Hooks::onPageHistoryBeforeList",
 		"EnhancedChangesListModifyLineData": "MediaWiki\\Extension\\Thanks\\Hooks::onEnhancedChangesListModifyLineData",
+		"OldChangesListRecentChangesLine": "MediaWiki\\Extension\\Thanks\\Hooks::onOldChangesListRecentChangesLine",
 		"EnhancedChangesListModifyBlockLineData": "MediaWiki\\Extension\\Thanks\\Hooks::onEnhancedChangesListModifyBlockLineData",
 		"ContributionsLineEnding": "MediaWiki\\Extension\\Thanks\\Hooks::onContributionsLineEnding"
 	},
