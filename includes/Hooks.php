@@ -614,7 +614,9 @@ class Hooks {
 			$out->getUser()
 		);
 		if ( isset( $links[0] ) ) {
-			$line .= $links[0];
+			// [UGC-4257] Wrap the thank link in a span so that it can be styled
+			$linkWithSpanParent = "<span class='mw-thanks-link-wrapper--contributions'>$links[0]</span>";
+			$line .= $linkWithSpanParent;
 		}
 	}
 }
