@@ -45,6 +45,8 @@ use MediaWiki\Output\OutputPage;
 use MediaWiki\Permissions\PermissionManager;
 use MediaWiki\Registration\ExtensionRegistry;
 use MediaWiki\Revision\RevisionLookup;
+use MediaWiki\Page\PageIdentityValue;
+use MediaWiki\Revision\MutableRevisionRecord;
 use MediaWiki\Revision\RevisionRecord;
 use MediaWiki\SpecialPage\SpecialPage;
 use MediaWiki\Title\Title;
@@ -620,8 +622,8 @@ class Hooks implements
 		if ( !in_array( 'ext.thanks.corethank', $changesList->getOutput()->getModules() ) ) {
 			self::addThanksModule( $changesList->getOutput() );
 		}
-		$revLookup = MediaWikiServices::getInstance()->getRevisionLookup();
-		$revision = $revLookup->getRevisionById( $rc->getAttribute( 'rc_this_oldid' ) );
+
+		$revision = self::getRevisionForRecentChange( $rc );
 		if ( $revision ) {
 			$holder = [];
 			self::insertThankLink(
