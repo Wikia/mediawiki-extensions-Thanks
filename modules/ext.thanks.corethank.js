@@ -138,4 +138,8 @@
 	mw.hook( 'wikipage.content' ).add( ( $content ) => {
 		addActionToLinks( $content );
 	} );
+
+	mw.hook( 'wikipage.content' ).add( function ( $content ) {
+		addActionToLinks( $content );
+	} );
 }() );
