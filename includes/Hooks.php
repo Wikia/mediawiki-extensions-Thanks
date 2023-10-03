@@ -191,9 +191,15 @@ class Hooks {
 		$id, User $sender, UserIdentity $recipient, $type = 'revision'
 	) {
 		// Check if the user has already thanked for this revision or log entry.
-		// Session keys are backwards-compatible, and are also used in the ApiCoreThank class.
-		$sessionKey = ( $type === 'revision' ) ? $id : $type . $id;
-		if ( $sender->getRequest()->getSessionData( "thanks-thanked-$sessionKey" ) ) {
+		/**
+		 * Fandom change - start - UGC-4533 - Cache thanks data in session in a better way
+		 * @author Mkostrzewski
+		 */
+		if ( ( new ThanksCache(
+			MediaWikiServices::getInstance()->getDBLoadBalancer(),
+			MediaWikiServices::getInstance()->getMainConfig()
+		) )->haveThanked( RequestContext::getMain(), $sender->getActorId(), $id, $type ) ) {
+			// Fandom change - end
 			return Html::element(
 				'span',
 				[ 'class' => 'mw-thanks-thanked' ],
@@ -357,8 +363,15 @@ class Hooks {
 			&& $output->getUser()->isRegistered()
 		) {
 			$output->addModules( [ 'ext.thanks.mobilediff' ] );
-
-			if ( $output->getRequest()->getSessionData( 'thanks-thanked-' . $rev->getId() ) ) {
+			/**
+			 * Fandom change - start - UGC-4533 - Cache thanks data in session in a better way
+			 * @author Mkostrzewski
+			 */
+			if ( ( new ThanksCache(
+				MediaWikiServices::getInstance()->getDBLoadBalancer(),
+				MediaWikiServices::getInstance()->getMainConfig()
+			) )->haveThanked( $output->getContext(), $output->getUser()->getActorId(), $rev->getId() ) ) {
+				// Fandom change - end
 				// User already sent thanks for this revision
 				$output->addJsConfigVars( 'wgThanksAlreadySent', true );
 			}

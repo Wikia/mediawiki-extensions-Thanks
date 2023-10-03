@@ -215,6 +215,9 @@
 				"rights/rights",
 				"lock"
 			]
+		},
+		"ThanksMaxLoadThankedPeriodDays": {
+			"value": 365
 		}
 	},
 	"manifest_version": 2
