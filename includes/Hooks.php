@@ -276,7 +276,16 @@ class Hooks implements
 		}
 		if ( $sender->getRequest()->getSessionData( "thanks-thanked-$sessionKey" ) ) {
 			$class .= ' mw-thanks-thanked';
-
+		}
+		/**
+		 * Fandom change - start - UGC-4533 - Cache thanks data in session in a better way
+		 * @author Mkostrzewski
+		 */
+		if ( ( new ThanksCache(
+			MediaWikiServices::getInstance()->getDBLoadBalancer(),
+			MediaWikiServices::getInstance()->getMainConfig()
+		) )->haveThanked( RequestContext::getMain(), $sender->getActorId(), $id, $type ) ) {
+			// Fandom change - end
 			return Html::element(
 				'span',
 				[ 'class' => $class ],
@@ -374,7 +383,43 @@ class Hooks implements
 		// New users get echo preferences set that are not the default settings for existing users.
 		// Specifically, new users are opted into email notifications for thanks.
 		if ( !$user->isTemp() && !$autocreated ) {
-			$this->userOptionsManager->setOption( $user, 'echo-subscriptions-email-edit-thank', true );
+			$userOptionsManager = MediaWikiServices::getInstance()->getUserOptionsManager();
+			$userOptionsManager->setOption( $user, 'echo-subscriptions-email-edit-thank', true );
+		}
+	}
+
+	/**
+	 * Add thanks button to SpecialMobileDiff page
+	 * @param OutputPage &$output OutputPage object
+	 * @param MobileContext $ctx MobileContext object
+	 * @param array $revisions Array with two elements, either nulls or RevisionRecord objects for
+	 *     the two revisions that are being compared in the diff
+	 */
+	public static function onBeforeSpecialMobileDiffDisplay( &$output, $ctx, $revisions ) {
+		$rev = $revisions[1];
+
+		// If the MobileFrontend extension is installed and the user is
+		// logged in or recipient is not a bot if bots cannot receive thanks, show a 'Thank' link.
+		if ( $rev
+			&& ExtensionRegistry::getInstance()->isLoaded( 'MobileFrontend' )
+			&& $rev->getUser()
+			&& self::canReceiveThanks( $rev->getUser() )
+			&& $output->getUser()->isRegistered()
+		) {
+			$output->addModules( [ 'ext.thanks.mobilediff' ] );
+			/**
+			 * Fandom change - start - UGC-4533 - Cache thanks data in session in a better way
+			 * @author Mkostrzewski
+			 */
+			if ( ( new ThanksCache(
+				MediaWikiServices::getInstance()->getDBLoadBalancer(),
+				MediaWikiServices::getInstance()->getMainConfig()
+			) )->haveThanked( $output->getContext(), $output->getUser()->getActorId(), $rev->getId() ) ) {
+				// Fandom change - end
+				// User already sent thanks for this revision
+				$output->addJsConfigVars( 'wgThanksAlreadySent', true );
+			}
+
 		}
 	}
 
