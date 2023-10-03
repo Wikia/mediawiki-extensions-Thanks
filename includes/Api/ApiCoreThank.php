@@ -15,6 +15,9 @@ use MediaWiki\Title\Title;
 use MediaWiki\User\User;
 use MediaWiki\User\UserFactory;
 use MediaWiki\User\UserIdentity;
+use RequestContext;
+use Title;
+use User;
 use Wikimedia\ParamValidator\ParamValidator;
 use Wikimedia\ParamValidator\TypeDef\IntegerDef;
 
@@ -129,11 +132,16 @@ class ApiCoreThank extends ApiThank {
 	 * @return bool
 	 */
 	protected function userAlreadySentThanks( User $user, $type, $id ) {
-		if ( $type === 'rev' ) {
-			// For b/c with old-style keys
-			$type = '';
-		}
-		return (bool)$user->getRequest()->getSessionData( "thanks-thanked-$type$id" );
+		/**
+		 * Fandom change - start - UGC-4533 - Cache thanks data in session in a better way
+		 * @author Mkostrzewski
+		 */
+		return ( new ThanksCache(
+			MediaWikiServices::getInstance()->getDBLoadBalancer(),
+			MediaWikiServices::getInstance()->getMainConfig()
+		) )
+			->haveThanked( RequestContext::getMain(), $user->getActorId(), $id, $type );
+		// Fandom change - end
 	}
 
 	private function getRevisionFromId( $revId ) {
@@ -253,7 +261,15 @@ class ApiCoreThank extends ApiThank {
 		] );
 
 		// And mark the thank in session for a cheaper check to prevent duplicates (Phab:T48690).
-		$user->getRequest()->setSessionData( "thanks-thanked-$type$id", true );
+		/**
+		 * Fandom change - start - UGC-4533 - Cache thanks data in session in a better way
+		 * @author Mkostrzewski
+		 */
+		( new ThanksCache(
+			MediaWikiServices::getInstance()->getDBLoadBalancer(),
+			MediaWikiServices::getInstance()->getMainConfig()
+		) )->appendUserThanks( $this->getContext(), $user->getActorId(), $uniqueId );
+		// Fandom change - end
 		// Set success message
 		$this->markResultSuccess( $recipient->getName() );
 		$this->logThanks( $user, $recipient, $uniqueId );

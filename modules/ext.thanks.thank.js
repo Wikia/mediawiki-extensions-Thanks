@@ -12,7 +12,12 @@
 			 * @return {string[]} Thanks IDs
 			 */
 			load: function ( cookieName ) {
-				const cookie = mw.cookie.get( cookieName || this.cookieName );
+				/**
+				 * Fandom change - start - UGC-4533 - Use localStorage instead of a cookie
+				 * @author Mkostrzewski
+				 */
+				var cookie = mw.storage.get( cookieName || this.cookieName );
+				// Fandom change - end
 				if ( cookie === null ) {
 					return [];
 				}
@@ -31,7 +36,12 @@
 				if ( saved.length > this.maxHistory ) { // prevent forever growing
 					saved = saved.slice( saved.length - this.maxHistory );
 				}
-				mw.cookie.set( cookieName || this.cookieName, escape( saved.join( ',' ) ) );
+				/**
+				 * Fandom change - start - UGC-4533 - Use localStorage instead of a cookie
+				 * @author Mkostrzewski
+				 */
+				mw.storage.set( cookieName || this.cookieName, escape( saved.join( ',' ) ) );
+				// Fandom change - end
 			},
 
 			/**
