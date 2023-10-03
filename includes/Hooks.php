@@ -301,6 +301,15 @@ class Hooks implements
 			MediaWikiServices::getInstance()->getMainConfig()
 		) )->haveThanked( RequestContext::getMain(), $sender->getActorId(), $id, $type ) ) {
 			// Fandom change - end
+		/**
+		 * Fandom change - start - UGC-4533 - Cache thanks data in session in a better way
+		 * @author Mkostrzewski
+		 */
+		if ( ( new ThanksCache(
+			MediaWikiServices::getInstance()->getDBLoadBalancer(),
+			MediaWikiServices::getInstance()->getMainConfig()
+		) )->haveThanked( RequestContext::getMain(), $sender->getActorId(), $id, $type ) ) {
+			// Fandom change - end
 			return Html::element(
 				'span',
 				[ 'class' => $class ],
@@ -520,7 +529,7 @@ class Hooks implements
 
 		// Don't provide thanks link if not named, blocked or if user is deleted from the log entry
 		if (
-			!$user->isNamed()
+			$user->isAnon()
 			|| $entry->isDeleted( LogPage::DELETED_USER )
 			|| $this->isUserBlockedFromTitle( $user, $entry->getTarget() )
 			|| self::isUserBlockedFromThanks( $user )
