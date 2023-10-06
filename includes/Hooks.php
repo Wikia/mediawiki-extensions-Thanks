@@ -75,6 +75,13 @@ class Hooks {
 		?RevisionRecord $oldRevisionRecord,
 		UserIdentity $userIdentity
 	) {
+		$out = RequestContext::getMain()->getOutput();
+
+		// [UGC-4257] Don't show thank links if user doesn't have specific permission
+		if ( !ThanksPermissions::checkUserPermissionsForThanks( $out ) ) {
+			return;
+		}
+
 		// Don't allow thanking for a diff that includes multiple revisions
 		// This does a query that is too expensive for history rows (T284274)
 		$previous = MediaWikiServices::getInstance()
@@ -648,6 +655,12 @@ class Hooks {
 		array &$attribs
 	): void {
 		$out = RequestContext::getMain()->getOutput();
+
+		// [UGC-4257] Don't show thank links if user doesn't have specific permission
+		if ( !ThanksPermissions::checkUserPermissionsForThanks( $out ) ) {
+			return;
+		}
+
 		if ( !in_array( 'ext.thanks.corethank', $out->getOutput()->getModules() ) ) {
 			self::addThanksModule( $out->getOutput() );
 		}
