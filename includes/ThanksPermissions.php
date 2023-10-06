@@ -2,6 +2,7 @@
 
 namespace MediaWiki\Extension\Thanks;
 
+use Fandom\Includes\Mobile\MobileHelper;
 use MediaWiki\MediaWikiServices;
 use MobileContext;
 
@@ -38,21 +39,28 @@ class ThanksPermissions {
 		}
 
 		$isSpecialHistory = $out->getTitle()->isSpecial( 'History' );
-		$isHistory = $out->getRequest()->getVal( 'action', 'view' ) === 'history';
 		$isMobileDiff = $out->getTitle()->isSpecial( 'MobileDiff' );
 		$isDiff = boolval( $out->getRequest()->getVal( 'diff' ) );
 		$isSpecialContributions = $out->getTitle()->isSpecial( 'Contributions' );
-		$isMobile = self::isMobile();
+		$isMobile = MobileHelper::isMobile();
 
-		if ( !( $isMobileDiff || $isDiff || $isSpecialContributions ||
-			( ( $isSpecialHistory || $isHistory ) && $isMobile ) )
-		) {
+		if ( !( $isMobileDiff || $isDiff || $isSpecialContributions || ( $isSpecialHistory && $isMobile ) ) ) {
 			return true;
 		}
 
 		$userGroupManager = MediaWikiServices::getInstance()->getUserGroupManager();
 		$userGroups = $userGroupManager->getUserEffectiveGroups( $user );
 
-		return !empty( array_intersect( $userGroups, self::REQUIRE_USER_GROUPS ) );
+		if ( $user->isAnon() ) {
+			return false;
+		}
+
+		if ( empty( array_intersect( $userGroups,
+			[ 'sysop', 'content-moderator', 'threadmoderator', 'rollback', 'staff', 'soap', 'wiki-representative', 'wiki-specialist' ]
+			) ) ) {
+			return false;
+		}
+
+		return true;
 	}
 }
