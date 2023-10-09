@@ -7,6 +7,8 @@ use MediaWiki\MediaWikiServices;
 use MobileContext;
 
 class ThanksPermissions {
+	private const REQUIRE_USER_GROUPS = [ 'sysop', 'content-moderator', 'threadmoderator', 'rollback', 'staff',
+	'soap', 'wiki-representative', 'wiki-specialist' ];
 
 	private static function isMobile() {
 		if ( class_exists( 'MobileContext' ) ) {
@@ -51,16 +53,6 @@ class ThanksPermissions {
 		$userGroupManager = MediaWikiServices::getInstance()->getUserGroupManager();
 		$userGroups = $userGroupManager->getUserEffectiveGroups( $user );
 
-		if ( $user->isAnon() ) {
-			return false;
-		}
-
-		if ( empty( array_intersect( $userGroups,
-			[ 'sysop', 'content-moderator', 'threadmoderator', 'rollback', 'staff', 'soap', 'wiki-representative', 'wiki-specialist' ]
-			) ) ) {
-			return false;
-		}
-
-		return true;
+		return !empty( array_intersect( $userGroups, self::REQUIRE_USER_GROUPS ) );
 	}
 }
