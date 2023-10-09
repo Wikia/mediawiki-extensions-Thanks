@@ -6,6 +6,8 @@ use Fandom\Includes\Mobile\MobileHelper;
 use MediaWiki\MediaWikiServices;
 
 class ThanksPermissions {
+	private const REQUIRE_USER_GROUPS = [ 'sysop', 'content-moderator', 'threadmoderator', 'rollback', 'staff',
+	'soap', 'wiki-representative', 'wiki-specialist' ];
 
 	/**
 	 * Check if the user is allowed to send thanks on pages:
@@ -18,6 +20,11 @@ class ThanksPermissions {
 	 */
 	public static function checkUserPermissionsForThanks( $out ) {
 		$user = $out->getUser();
+
+		if ( $user->isAnon() ) {
+			return false;
+		}
+
 		$isSpecialHistory = $out->getTitle()->isSpecial( 'History' );
 		$isMobileDiff = $out->getTitle()->isSpecial( 'MobileDiff' );
 		$isDiff = boolval( $out->getRequest()->getVal( 'diff' ) );
@@ -31,16 +38,6 @@ class ThanksPermissions {
 		$userGroupManager = MediaWikiServices::getInstance()->getUserGroupManager();
 		$userGroups = $userGroupManager->getUserEffectiveGroups( $user );
 
-		if ( $user->isAnon() ) {
-			return false;
-		}
-
-		if ( empty( array_intersect( $userGroups,
-			[ 'sysop', 'content-moderator', 'threadmoderator', 'rollback', 'staff', 'soap', 'wiki-representative', 'wiki-specialist' ]
-			) ) ) {
-			return false;
-		}
-
-		return true;
+		return !empty( array_intersect( $userGroups, self::REQUIRE_USER_GROUPS ) );
 	}
 }
