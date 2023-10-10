@@ -2,11 +2,22 @@
 
 namespace MediaWiki\Extension\Thanks;
 
-use Fandom\Includes\Mobile\MobileHelper;
 use MediaWiki\MediaWikiServices;
 use MobileContext;
 
 class ThanksPermissions {
+
+	private static function isMobile() {
+		if ( class_exists( 'MobileContext' ) ) {
+			/** @var MobileContext $mobileContext */
+			$mobileContext = MediaWikiServices::getInstance()->getService( 'MobileFrontend.Context' );
+
+			return $mobileContext->shouldDisplayMobileView();
+		}
+
+		return false;
+	}
+
 	private const REQUIRE_USER_GROUPS = [ 'sysop', 'content-moderator', 'threadmoderator', 'rollback', 'staff',
 	'soap', 'wiki-representative', 'wiki-specialist' ];
 
@@ -44,7 +55,7 @@ class ThanksPermissions {
 		$isMobileDiff = $out->getTitle()->isSpecial( 'MobileDiff' );
 		$isDiff = boolval( $out->getRequest()->getVal( 'diff' ) );
 		$isSpecialContributions = $out->getTitle()->isSpecial( 'Contributions' );
-		$isMobile = MobileHelper::isMobile();
+		$isMobile = self::isMobile();
 
 		if ( !( $isMobileDiff || $isDiff || $isSpecialContributions || ( $isSpecialHistory && $isMobile ) ) ) {
 			return true;
