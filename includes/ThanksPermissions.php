@@ -52,12 +52,15 @@ class ThanksPermissions {
 		}
 
 		$isSpecialHistory = $out->getTitle()->isSpecial( 'History' );
+		$isHistory = $out->getRequest()->getVal( 'action', 'view' ) === 'history';
 		$isMobileDiff = $out->getTitle()->isSpecial( 'MobileDiff' );
 		$isDiff = boolval( $out->getRequest()->getVal( 'diff' ) );
 		$isSpecialContributions = $out->getTitle()->isSpecial( 'Contributions' );
 		$isMobile = self::isMobile();
 
-		if ( !( $isMobileDiff || $isDiff || $isSpecialContributions || ( $isSpecialHistory && $isMobile ) ) ) {
+		if ( !( $isMobileDiff || $isDiff || $isSpecialContributions ||
+			( ( $isSpecialHistory || $isHistory ) && $isMobile ) )
+		) {
 			return true;
 		}
 

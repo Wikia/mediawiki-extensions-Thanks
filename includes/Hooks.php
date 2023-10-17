@@ -130,6 +130,11 @@ class Hooks implements
 			return;
 		}
 
+		// [UGC-4257] Don't show thank links if user doesn't have specific permission
+		if ( !ThanksPermissions::checkUserPermissionsForThanks( RequestContext::getMain()->getOutput() ) ) {
+			return;
+		}
+
 		self::insertThankLink( $revisionRecord,
 			$links, $userIdentity );
 	}
