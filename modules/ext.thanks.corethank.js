@@ -129,4 +129,13 @@
 	mw.hook( 'wikipage.diff' ).add( function ( $content ) {
 		addActionToLinks( $content );
 	} );
+
+	// Add `wikipage.content` hook only to special pages that are dynamically reloading DOM
+	const specialPageName = mw.config.get( 'wgCanonicalSpecialPageName' );
+	if ( specialPageName === 'Recentchanges' || specialPageName === 'Watchlist' ) {
+		mw.hook( 'wikipage.content' ).add( function ( $content ) {
+			addActionToLinks( $content );
+			reloadThankedState();
+		} );
+	}
 }() );

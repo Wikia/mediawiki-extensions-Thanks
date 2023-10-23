@@ -18,9 +18,13 @@ use LogEventsList;
 use LogPage;
 use MediaWiki\Linker\LinkTarget;
 use MediaWiki\MediaWikiServices;
+use MediaWiki\Page\PageIdentityValue;
+use MediaWiki\Revision\MutableRevisionRecord;
 use MediaWiki\Revision\RevisionRecord;
 use MediaWiki\User\UserIdentity;
+use MediaWiki\User\UserIdentityValue;
 use MobileContext;
+use OldChangesList;
 use OutputPage;
 use RecentChange;
 use RequestContext;
@@ -53,6 +57,11 @@ class Hooks {
 		?RevisionRecord $oldRevisionRecord,
 		UserIdentity $userIdentity
 	) {
+		// [UGC-4257] Don't show thank links if user doesn't have specific permission
+		if ( !ThanksPermissions::checkUserPermissionsForThanks( RequestContext::getMain()->getOutput() ) ) {
+			return;
+		}
+
 		self::insertThankLink( $revisionRecord,
 			$links, $userIdentity );
 	}
@@ -71,6 +80,13 @@ class Hooks {
 		?RevisionRecord $oldRevisionRecord,
 		UserIdentity $userIdentity
 	) {
+		$out = RequestContext::getMain()->getOutput();
+
+		// [UGC-4257] Don't show thank links if user doesn't have specific permission
+		if ( !ThanksPermissions::checkUserPermissionsForThanks( $out ) ) {
+			return;
+		}
+
 		// Don't allow thanking for a diff that includes multiple revisions
 		// This does a query that is too expensive for history rows (T284274)
 		$previous = MediaWikiServices::getInstance()
@@ -187,9 +203,15 @@ class Hooks {
 		$id, User $sender, UserIdentity $recipient, $type = 'revision'
 	) {
 		// Check if the user has already thanked for this revision or log entry.
-		// Session keys are backwards-compatible, and are also used in the ApiCoreThank class.
-		$sessionKey = ( $type === 'revision' ) ? $id : $type . $id;
-		if ( $sender->getRequest()->getSessionData( "thanks-thanked-$sessionKey" ) ) {
+		/**
+		 * Fandom change - start - UGC-4533 - Cache thanks data in session in a better way
+		 * @author Mkostrzewski
+		 */
+		if ( ( new ThanksCache(
+			MediaWikiServices::getInstance()->getDBLoadBalancer(),
+			MediaWikiServices::getInstance()->getMainConfig()
+		) )->haveThanked( RequestContext::getMain(), $sender->getActorId(), $id, $type ) ) {
+			// Fandom change - end
 			return Html::element(
 				'span',
 				[ 'class' => 'mw-thanks-thanked' ],
@@ -353,8 +375,15 @@ class Hooks {
 			&& $output->getUser()->isRegistered()
 		) {
 			$output->addModules( [ 'ext.thanks.mobilediff' ] );
-
-			if ( $output->getRequest()->getSessionData( 'thanks-thanked-' . $rev->getId() ) ) {
+			/**
+			 * Fandom change - start - UGC-4533 - Cache thanks data in session in a better way
+			 * @author Mkostrzewski
+			 */
+			if ( ( new ThanksCache(
+				MediaWikiServices::getInstance()->getDBLoadBalancer(),
+				MediaWikiServices::getInstance()->getMainConfig()
+			) )->haveThanked( $output->getContext(), $output->getUser()->getActorId(), $rev->getId() ) ) {
+				// Fandom change - end
 				// User already sent thanks for this revision
 				$output->addJsConfigVars( 'wgThanksAlreadySent', true );
 			}
@@ -522,12 +551,39 @@ class Hooks {
 		if ( !in_array( 'ext.thanks.corethank', $changesList->getOutput()->getModules() ) ) {
 			self::addThanksModule( $changesList->getOutput() );
 		}
-		$revLookup = MediaWikiServices::getInstance()->getRevisionLookup();
-		self::insertThankLink(
-			$revLookup->getRevisionById( $rc->getAttribute( 'rc_this_oldid' ) ),
-			$data,
-			$changesList->getUser()
-		);
+
+		$revision = self::getRevisionForRecentChange( $rc );
+		if ( $revision ) {
+			self::insertThankLink(
+				$revision,
+				$data,
+				$changesList->getUser()
+			);
+		}
+	}
+
+	public static function onOldChangesListRecentChangesLine(
+		OldChangesList $changesList,
+		&$s,
+		$rc,
+	) {
+		if ( !in_array( 'ext.thanks.corethank', $changesList->getOutput()->getModules() ) ) {
+			self::addThanksModule( $changesList->getOutput() );
+		}
+
+		$revision = self::getRevisionForRecentChange( $rc );
+		if ( $revision ) {
+			$holder = [];
+			self::insertThankLink(
+				$revision,
+				$holder,
+				$changesList->getUser()
+			);
+
+			if ( count( $holder ) ) {
+				$s .= ' ' . $holder[0];
+			}
+		}
 	}
 
 	/**
@@ -547,12 +603,57 @@ class Hooks {
 		if ( !in_array( 'ext.thanks.corethank', $changesList->getOutput()->getModules() ) ) {
 			self::addThanksModule( $changesList->getOutput() );
 		}
-		$revLookup = MediaWikiServices::getInstance()->getRevisionLookup();
-		self::insertThankLink(
-			$revLookup->getRevisionById( $rc->getAttribute( 'rc_this_oldid' ) ),
-			$data,
-			$changesList->getUser()
+		$revision = self::getRevisionForRecentChange( $rc );
+		if ( $revision ) {
+			self::insertThankLink(
+				$revision,
+				$data,
+				$changesList->getUser()
+			);
+		}
+	}
+
+	/**
+	 * Convenience function to get the {@link RevisionRecord} corresponding to a RecentChanges entry.
+	 * This is an optimization to avoid triggering a query to fetch revision data for each RecentChanges entry.
+	 * Instead, the revision is constructed entirely using data from the RecentChanges entry itself (UGC-4379).
+	 *
+	 * @param RecentChange $recentChange The RecentChanges entry to get the revision for.
+	 * @return RevisionRecord|null The {@link RevisionRecord} object corresponding to the given RecentChanges entry,
+	 * or {@code null} if the entry does not correspond to an article edit.
+	 */
+	private static function getRevisionForRecentChange( RecentChange $recentChange ): ?RevisionRecord {
+		$page = $recentChange->getPage();
+		if ( $page === null ) {
+			return null;
+		}
+
+		$pageId = $recentChange->getAttribute( 'rc_cur_id' );
+		$revId = $recentChange->getAttribute( 'rc_this_oldid' );
+		if (
+			!in_array( $recentChange->getAttribute( 'rc_type' ), [ RC_EDIT, RC_NEW ] ) ||
+			!$pageId ||
+			!$revId
+		) {
+			return null;
+		}
+
+		$page = PageIdentityValue::localIdentity( $pageId, $page->getNamespace(), $page->getDBkey() );
+
+		// Initialize the author associated with this revision.
+		// Note that this cannot use RecentChange::getPerformerIdentity(),
+		// as it would trigger a database lookup for each entry.
+		$user = new UserIdentityValue(
+			(int)$recentChange->getAttribute( 'rc_user' ),
+			$recentChange->getAttribute( 'rc_user_text' )
 		);
+
+		$revRecord = new MutableRevisionRecord( $page );
+		$revRecord->setId( $revId );
+		$revRecord->setVisibility( (int)$recentChange->getAttribute( 'rc_deleted' ) );
+		$revRecord->setUser( $user );
+
+		return $revRecord;
 	}
 
 	/**
@@ -572,6 +673,12 @@ class Hooks {
 		array &$attribs
 	): void {
 		$out = RequestContext::getMain()->getOutput();
+
+		// [UGC-4257] Don't show thank links if user doesn't have specific permission
+		if ( !ThanksPermissions::checkUserPermissionsForThanks( $out ) ) {
+			return;
+		}
+
 		if ( !in_array( 'ext.thanks.corethank', $out->getOutput()->getModules() ) ) {
 			self::addThanksModule( $out->getOutput() );
 		}
@@ -583,7 +690,9 @@ class Hooks {
 			$out->getUser()
 		);
 		if ( isset( $links[0] ) ) {
-			$line .= $links[0];
+			// [UGC-4257] Wrap the thank link in a span so that it can be styled
+			$linkWithSpanParent = "<span class='mw-thanks-link-wrapper--contributions'>$links[0]</span>";
+			$line .= $linkWithSpanParent;
 		}
 	}
 }
