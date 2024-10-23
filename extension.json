@@ -54,7 +54,7 @@
 	},
 	"ResourceModules": {
 		"ext.thanks.images": {
-			"class": "ResourceLoaderImageModule",
+			"class": "MediaWiki\\ResourceLoader\\ImageModule",
 			"selector": ".mw-ui-icon-thanks-{name}:before",
 			"defaultColor": "#fff",
 			"images": {
