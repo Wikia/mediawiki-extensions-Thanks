@@ -5,16 +5,10 @@
 namespace MediaWiki\Extension\Thanks;
 
 use Article;
-use CategoryPage;
-use ConfigException;
 use ContribsPager;
 use DatabaseLogEntry;
 use DifferenceEngine;
-use EchoEvent;
 use EnhancedChangesList;
-use ExtensionRegistry;
-use Html;
-use ImagePage;
 use LogEventsList;
 use LogPage;
 use MediaWiki\Api\ApiModuleManager;
@@ -30,23 +24,24 @@ use MediaWiki\Diff\Hook\DifferenceEngineViewHeaderHook;
 use MediaWiki\Diff\Hook\DiffToolsHook;
 use MediaWiki\Extension\Thanks\Api\ApiFlowThank;
 use MediaWiki\Hook\ChangesListInitRowsHook;
+use MediaWiki\Hook\ContributionsLineEndingHook;
+use MediaWiki\Hook\EnhancedChangesListModifyLineDataHook;
 use MediaWiki\Hook\GetLogTypesOnUserHook;
 use MediaWiki\Hook\HistoryToolsHook;
 use MediaWiki\Hook\LogEventsListLineEndingHook;
+use MediaWiki\Hook\OldChangesListRecentChangesLineHook;
 use MediaWiki\Hook\PageHistoryBeforeListHook;
 use MediaWiki\Hook\PageHistoryPager__doBatchLookupsHook;
 use MediaWiki\Html\Html;
 use MediaWiki\Linker\LinkTarget;
 use MediaWiki\MediaWikiServices;
-use MediaWiki\Page\PageIdentityValue;
-use MediaWiki\Revision\MutableRevisionRecord;
 use MediaWiki\Output\Hook\BeforePageDisplayHook;
 use MediaWiki\Output\OutputPage;
+use MediaWiki\Page\PageIdentityValue;
 use MediaWiki\Permissions\PermissionManager;
 use MediaWiki\Registration\ExtensionRegistry;
-use MediaWiki\Revision\RevisionLookup;
-use MediaWiki\Page\PageIdentityValue;
 use MediaWiki\Revision\MutableRevisionRecord;
+use MediaWiki\Revision\RevisionLookup;
 use MediaWiki\Revision\RevisionRecord;
 use MediaWiki\SpecialPage\SpecialPage;
 use MediaWiki\Title\Title;
@@ -56,16 +51,9 @@ use MediaWiki\User\UserFactory;
 use MediaWiki\User\UserIdentity;
 use MediaWiki\User\UserIdentityValue;
 use MobileContext;
-use OldChangesList;
-use OutputPage;
 use RecentChange;
-use RequestContext;
 use Skin;
-use SpecialPage;
 use stdClass;
-use Title;
-use User;
-use WikiPage;
 
 /**
  * Hooks for Thanks extension
@@ -73,11 +61,12 @@ use WikiPage;
  * @file
  * @ingroup Extensions
  */
-class Hooks implements
+abstract class Hooks implements
 	ApiMain__moduleManagerHook,
 	BeforePageDisplayHook,
 	DiffToolsHook,
 	DifferenceEngineViewHeaderHook,
+	EnhancedChangesListModifyLineDataHook,
 	GetAllBlockActionsHook,
 	GetLogTypesOnUserHook,
 	HistoryToolsHook,
@@ -85,7 +74,9 @@ class Hooks implements
 	LogEventsListLineEndingHook,
 	PageHistoryBeforeListHook,
 	PageHistoryPager__doBatchLookupsHook,
-	ChangesListInitRowsHook
+	ChangesListInitRowsHook,
+	OldChangesListRecentChangesLineHook,
+	ContributionsLineEndingHook
 {
 	private Config $config;
 	private GenderCache $genderCache;
@@ -125,6 +116,7 @@ class Hooks implements
 		$userIdentity
 	) {
 		$this->insertThankLink( $revisionRecord,
+			$links, $userIdentity );
 		// [UGC-4257] Don't show thank links if user doesn't have specific permission
 		if ( !ThanksPermissions::checkUserPermissionsForThanks( RequestContext::getMain()->getOutput() ) ) {
 			return;
@@ -306,15 +298,6 @@ class Hooks implements
 			MediaWikiServices::getInstance()->getMainConfig()
 		) )->haveThanked( RequestContext::getMain(), $sender->getActorId(), $id, $type ) ) {
 			// Fandom change - end
-		/**
-		 * Fandom change - start - UGC-4533 - Cache thanks data in session in a better way
-		 * @author Mkostrzewski
-		 */
-		if ( ( new ThanksCache(
-			MediaWikiServices::getInstance()->getDBLoadBalancer(),
-			MediaWikiServices::getInstance()->getMainConfig()
-		) )->haveThanked( RequestContext::getMain(), $sender->getActorId(), $id, $type ) ) {
-			// Fandom change - end
 			return Html::element(
 				'span',
 				[ 'class' => $class ],
@@ -426,13 +409,14 @@ class Hooks implements
 	 */
 	public static function onBeforeSpecialMobileDiffDisplay( &$output, $ctx, $revisions ) {
 		$rev = $revisions[1];
+		$services = MediaWikiServices::getInstance();
 
 		// If the MobileFrontend extension is installed and the user is
 		// logged in or recipient is not a bot if bots cannot receive thanks, show a 'Thank' link.
 		if ( $rev
 			&& ExtensionRegistry::getInstance()->isLoaded( 'MobileFrontend' )
 			&& $rev->getUser()
-			&& self::canReceiveThanks( $rev->getUser() )
+			&& self::canReceiveThanks( $services->getMainConfig(), $services->getUserFactory(), $rev->getUser() )
 			&& $output->getUser()->isRegistered()
 		) {
 			$output->addModules( [ 'ext.thanks.mobilediff' ] );
@@ -582,14 +566,7 @@ class Hooks implements
 	 * @param string[] &$attribs
 	 * @return void
 	 */
-	public static function onEnhancedChangesListModifyLineData(
-		EnhancedChangesList $changesList,
-		array &$data,
-		array $block,
-		RecentChange $rc,
-		array &$classes,
-		array &$attribs
-	): void {
+	public function onEnhancedChangesListModifyLineData( $changesList, &$data, $block, $rc, &$classes, &$attribs ) {
 		if ( !in_array( 'ext.thanks.corethank', $changesList->getOutput()->getModules() ) ) {
 			self::addThanksModule( $changesList->getOutput() );
 		}
@@ -604,13 +581,9 @@ class Hooks implements
 		}
 	}
 
-	public static function onOldChangesListRecentChangesLine(
-		OldChangesList $changesList,
-		&$s,
-		$rc,
-	) {
-		if ( !in_array( 'ext.thanks.corethank', $changesList->getOutput()->getModules() ) ) {
-			self::addThanksModule( $changesList->getOutput() );
+	public function onOldChangesListRecentChangesLine( $changeslist, &$s, $rc, &$classes, &$attribs ) {
+		if ( !in_array( 'ext.thanks.corethank', $changeslist->getOutput()->getModules() ) ) {
+			self::addThanksModule( $changeslist->getOutput() );
 		}
 
 		$revision = self::getRevisionForRecentChange( $rc );
@@ -619,63 +592,12 @@ class Hooks implements
 			self::insertThankLink(
 				$revision,
 				$holder,
-				$changesList->getUser()
+				$changeslist->getUser()
 			);
 
 			if ( count( $holder ) ) {
 				$s .= ' ' . $holder[0];
 			}
-		}
-	}
-
-	public static function onOldChangesListRecentChangesLine(
-		OldChangesList $changesList,
-		&$s,
-		$rc,
-	) {
-		if ( !in_array( 'ext.thanks.corethank', $changesList->getOutput()->getModules() ) ) {
-			self::addThanksModule( $changesList->getOutput() );
-		}
-
-		$revision = self::getRevisionForRecentChange( $rc );
-		if ( $revision ) {
-			$holder = [];
-			self::insertThankLink(
-				$revision,
-				$holder,
-				$changesList->getUser()
-			);
-
-			if ( count( $holder ) ) {
-				$s .= ' ' . $holder[0];
-			}
-		}
-	}
-
-	/**
-	 * Fandom change UGC-4012 - Add thank link to the recent changes list
-	 *
-	 * @link https://www.mediawiki.org/wiki/Manual:EnhancedChangesListModifyBlockLineDataHook.php
-	 * @param EnhancedChangesList $changesList
-	 * @param array &$data
-	 * @param RecentChange $rc
-	 * @return void
-	 */
-	public static function onEnhancedChangesListModifyBlockLineData(
-		EnhancedChangesList $changesList,
-		array &$data,
-		RecentChange $rc
-	): void {
-		if ( !in_array( 'ext.thanks.corethank', $changesList->getOutput()->getModules() ) ) {
-			self::addThanksModule( $changesList->getOutput() );
-		}
-		$revision = self::getRevisionForRecentChange( $rc );
-		if ( $revision ) {
-			self::insertThankLink(
-				$revision,
-				$data,
-				$changesList->getUser()
-			);
 		}
 	}
 
@@ -725,19 +647,13 @@ class Hooks implements
 	/**
 	 * Fandom change UGC-4012 - Add thank link to Special:Contributions page
 	 * @param ContribsPager $pager
-	 * @param string &$line
+	 * @param string &$ret
 	 * @param stdClass $row
 	 * @param array &$classes
 	 * @param array &$attribs
 	 * @return void
 	 */
-	public static function onContributionsLineEnding(
-		ContribsPager $pager,
-		string &$line,
-		stdClass $row,
-		array &$classes,
-		array &$attribs
-	): void {
+	public function onContributionsLineEnding( $pager, &$ret, $row, &$classes, &$attribs ): void {
 		$out = RequestContext::getMain()->getOutput();
 
 		// [UGC-4257] Don't show thank links if user doesn't have specific permission
@@ -758,7 +674,7 @@ class Hooks implements
 		if ( isset( $links[0] ) ) {
 			// [UGC-4257] Wrap the thank link in a span so that it can be styled
 			$linkWithSpanParent = "<span class='mw-thanks-link-wrapper--contributions'>$links[0]</span>";
-			$line .= $linkWithSpanParent;
+			$ret .= $linkWithSpanParent;
 		}
 	}
 }

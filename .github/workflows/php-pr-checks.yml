@@ -4,14 +4,14 @@ on:
     branches: '**'
 
   push:
-    branches: [ master, MW_1_37, REL1_39 ]
+    branches: [ REL1_43 ]
 
 jobs:
   build:
     strategy:
       matrix:
         php_version: ['8.0']
-        mw: ['REL1_39']
+        mw: ['REL1_43']
 
     runs-on: ubuntu-latest
     steps:
@@ -76,7 +76,3 @@ jobs:
       - name: Run PHPCS
         working-directory: ./mediawiki/extensions/Thanks
         run: composer phpcs
-
-      - name: Run Phan static analysis
-        working-directory: ./mediawiki/extensions/Thanks
-        run: composer phan

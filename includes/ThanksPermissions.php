@@ -7,17 +7,6 @@ use MobileContext;
 
 class ThanksPermissions {
 
-	private static function isMobile() {
-		if ( class_exists( 'MobileContext' ) ) {
-			/** @var MobileContext $mobileContext */
-			$mobileContext = MediaWikiServices::getInstance()->getService( 'MobileFrontend.Context' );
-
-			return $mobileContext->shouldDisplayMobileView();
-		}
-
-		return false;
-	}
-
 	private const REQUIRE_USER_GROUPS = [ 'sysop', 'content-moderator', 'threadmoderator', 'rollback', 'staff',
 	'soap', 'wiki-representative', 'wiki-specialist' ];
 
@@ -31,9 +20,6 @@ class ThanksPermissions {
 
 		return false;
 	}
-
-	private const REQUIRE_USER_GROUPS = [ 'sysop', 'content-moderator', 'threadmoderator', 'rollback', 'staff',
-	'soap', 'wiki-representative', 'wiki-specialist' ];
 
 	/**
 	 * Check if the user is allowed to send thanks on pages:

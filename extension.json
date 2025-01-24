@@ -161,11 +161,11 @@
 		"PageHistoryBeforeList": "main",
 		"PageHistoryPager::doBatchLookups": "main",
 		"ChangesListInitRows": "main",
-		"EnhancedChangesListModifyLineData": "MediaWiki\\Extension\\Thanks\\Hooks::onEnhancedChangesListModifyLineData",
+		"EnhancedChangesListModifyLineData": "main",
 		"EnhancedChangesListModifyBlockLineData": "MediaWiki\\Extension\\Thanks\\Hooks::onEnhancedChangesListModifyBlockLineData",
-		"OldChangesListRecentChangesLine": "MediaWiki\\Extension\\Thanks\\Hooks::onOldChangesListRecentChangesLine",
-		"ContributionsLineEnding": "MediaWiki\\Extension\\Thanks\\Hooks::onContributionsLineEnding"
-    },
+		"OldChangesListRecentChangesLine":  "main",
+		"ContributionsLineEnding":  "main"
+	},
 	"HookHandlers": {
 		"main": {
 			"class": "MediaWiki\\Extension\\Thanks\\Hooks",
