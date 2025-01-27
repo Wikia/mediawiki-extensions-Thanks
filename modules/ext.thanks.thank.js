@@ -16,7 +16,7 @@
 				 * Fandom change - start - UGC-4533 - Use localStorage instead of a cookie
 				 * @author Mkostrzewski
 				 */
-				var cookie = mw.storage.get( cookieName || this.cookieName );
+				const cookie = mw.storage.get( cookieName || this.cookieName );
 				// Fandom change - end
 				if ( cookie === null ) {
 					return [];

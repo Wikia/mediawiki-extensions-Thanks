@@ -2,8 +2,8 @@
 
 namespace MediaWiki\Extension\Thanks;
 
-use Config;
-use IContextSource;
+use MediaWiki\Config\Config;
+use MediaWiki\Context\IContextSource;
 use Wikimedia\Rdbms\ILoadBalancer;
 use Wikimedia\Rdbms\SelectQueryBuilder;
 
@@ -13,14 +13,8 @@ use Wikimedia\Rdbms\SelectQueryBuilder;
  */
 class ThanksCache {
 	private const THANKED_IDS_SESSION_KEY_PATTERN = "thanks-thanked-ids-%d";
-	/** @var ILoadBalancer */
-	private $lb;
-	/** @var Config */
-	private $config;
 
-	public function __construct( ILoadBalancer $lb, Config $config ) {
-		$this->lb = $lb;
-		$this->config = $config;
+	public function __construct( private readonly ILoadBalancer $lb, private readonly Config $config ) {
 	}
 
 	/**
@@ -79,7 +73,7 @@ class ThanksCache {
 
 		$thankedCached = $session->get( $key );
 		if ( $thankedCached === null ) {
-			$thankedCached = self::getUserThanks( $ctx, $thankerActorId );
+			$thankedCached = $this->getUserThanks( $ctx, $thankerActorId );
 		}
 		$thankedCached[] = $id;
 		$session->set( $key, $thankedCached );
@@ -91,6 +85,6 @@ class ThanksCache {
 			$type = 'rev';
 		}
 		$value = "$type-$id";
-		return in_array( $value, self::getUserThanks( $ctx, $thankerActorId ) );
+		return in_array( $value, $this->getUserThanks( $ctx, $thankerActorId ) );
 	}
 }

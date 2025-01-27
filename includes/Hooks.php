@@ -5,7 +5,6 @@
 namespace MediaWiki\Extension\Thanks;
 
 use Article;
-use ContribsPager;
 use DatabaseLogEntry;
 use DifferenceEngine;
 use EnhancedChangesList;
@@ -25,6 +24,7 @@ use MediaWiki\Diff\Hook\DiffToolsHook;
 use MediaWiki\Extension\Thanks\Api\ApiFlowThank;
 use MediaWiki\Hook\ChangesListInitRowsHook;
 use MediaWiki\Hook\ContributionsLineEndingHook;
+use MediaWiki\Hook\EnhancedChangesListModifyBlockLineDataHook;
 use MediaWiki\Hook\EnhancedChangesListModifyLineDataHook;
 use MediaWiki\Hook\GetLogTypesOnUserHook;
 use MediaWiki\Hook\HistoryToolsHook;
@@ -38,6 +38,7 @@ use MediaWiki\MediaWikiServices;
 use MediaWiki\Output\Hook\BeforePageDisplayHook;
 use MediaWiki\Output\OutputPage;
 use MediaWiki\Page\PageIdentityValue;
+use MediaWiki\Pager\ContribsPager;
 use MediaWiki\Permissions\PermissionManager;
 use MediaWiki\Registration\ExtensionRegistry;
 use MediaWiki\Revision\MutableRevisionRecord;
@@ -50,7 +51,6 @@ use MediaWiki\User\User;
 use MediaWiki\User\UserFactory;
 use MediaWiki\User\UserIdentity;
 use MediaWiki\User\UserIdentityValue;
-use MobileContext;
 use RecentChange;
 use Skin;
 use stdClass;
@@ -61,11 +61,12 @@ use stdClass;
  * @file
  * @ingroup Extensions
  */
-abstract class Hooks implements
+class Hooks implements
 	ApiMain__moduleManagerHook,
 	BeforePageDisplayHook,
 	DiffToolsHook,
 	DifferenceEngineViewHeaderHook,
+	EnhancedChangesListModifyBlockLineDataHook,
 	EnhancedChangesListModifyLineDataHook,
 	GetAllBlockActionsHook,
 	GetLogTypesOnUserHook,
@@ -122,12 +123,7 @@ abstract class Hooks implements
 			return;
 		}
 
-		// [UGC-4257] Don't show thank links if user doesn't have specific permission
-		if ( !ThanksPermissions::checkUserPermissionsForThanks( RequestContext::getMain()->getOutput() ) ) {
-			return;
-		}
-
-		self::insertThankLink( $revisionRecord,
+		$this->insertThankLink( $revisionRecord,
 			$links, $userIdentity );
 	}
 
@@ -279,16 +275,11 @@ abstract class Hooks implements
 		bool $isPrimaryButton = false
 	) {
 		$useCodex = RequestContext::getMain()->getSkin()->getSkinName() === 'minerva';
-		// Check if the user has already thanked for this revision or log entry.
-		// Session keys are backwards-compatible, and are also used in the ApiCoreThank class.
-		$sessionKey = ( $type === 'revision' ) ? $id : $type . $id;
 		$class = $useCodex ? 'cdx-button cdx-button--fake-button cdx-button--fake-button--enabled' : '';
 		if ( $isPrimaryButton && $useCodex ) {
 			$class .= ' cdx-button--weight-primary cdx-button--action-progressive';
 		}
-		if ( $sender->getRequest()->getSessionData( "thanks-thanked-$sessionKey" ) ) {
-			$class .= ' mw-thanks-thanked';
-		}
+		// Check if the user has already thanked for this revision or log entry.
 		/**
 		 * Fandom change - start - UGC-4533 - Cache thanks data in session in a better way
 		 * @author Mkostrzewski
@@ -298,6 +289,7 @@ abstract class Hooks implements
 			MediaWikiServices::getInstance()->getMainConfig()
 		) )->haveThanked( RequestContext::getMain(), $sender->getActorId(), $id, $type ) ) {
 			// Fandom change - end
+			$class .= ' mw-thanks-thanked';
 			return Html::element(
 				'span',
 				[ 'class' => $class ],
@@ -395,44 +387,7 @@ abstract class Hooks implements
 		// New users get echo preferences set that are not the default settings for existing users.
 		// Specifically, new users are opted into email notifications for thanks.
 		if ( !$user->isTemp() && !$autocreated ) {
-			$userOptionsManager = MediaWikiServices::getInstance()->getUserOptionsManager();
-			$userOptionsManager->setOption( $user, 'echo-subscriptions-email-edit-thank', true );
-		}
-	}
-
-	/**
-	 * Add thanks button to SpecialMobileDiff page
-	 * @param OutputPage &$output OutputPage object
-	 * @param MobileContext $ctx MobileContext object
-	 * @param array $revisions Array with two elements, either nulls or RevisionRecord objects for
-	 *     the two revisions that are being compared in the diff
-	 */
-	public static function onBeforeSpecialMobileDiffDisplay( &$output, $ctx, $revisions ) {
-		$rev = $revisions[1];
-		$services = MediaWikiServices::getInstance();
-
-		// If the MobileFrontend extension is installed and the user is
-		// logged in or recipient is not a bot if bots cannot receive thanks, show a 'Thank' link.
-		if ( $rev
-			&& ExtensionRegistry::getInstance()->isLoaded( 'MobileFrontend' )
-			&& $rev->getUser()
-			&& self::canReceiveThanks( $services->getMainConfig(), $services->getUserFactory(), $rev->getUser() )
-			&& $output->getUser()->isRegistered()
-		) {
-			$output->addModules( [ 'ext.thanks.mobilediff' ] );
-			/**
-			 * Fandom change - start - UGC-4533 - Cache thanks data in session in a better way
-			 * @author Mkostrzewski
-			 */
-			if ( ( new ThanksCache(
-				MediaWikiServices::getInstance()->getDBLoadBalancer(),
-				MediaWikiServices::getInstance()->getMainConfig()
-			) )->haveThanked( $output->getContext(), $output->getUser()->getActorId(), $rev->getId() ) ) {
-				// Fandom change - end
-				// User already sent thanks for this revision
-				$output->addJsConfigVars( 'wgThanksAlreadySent', true );
-			}
-
+			$this->userOptionsManager->setOption( $user, 'echo-subscriptions-email-edit-thank', true );
 		}
 	}
 
@@ -518,7 +473,7 @@ abstract class Hooks implements
 
 		// Don't provide thanks link if not named, blocked or if user is deleted from the log entry
 		if (
-			$user->isAnon()
+			!$user->isNamed()
 			|| $entry->isDeleted( LogPage::DELETED_USER )
 			|| $this->isUserBlockedFromTitle( $user, $entry->getTarget() )
 			|| self::isUserBlockedFromThanks( $user )
@@ -548,7 +503,7 @@ abstract class Hooks implements
 		// or the log entry.
 		$type = $entry->getAssociatedRevId() ? 'revision' : 'log';
 		$id = $entry->getAssociatedRevId() ?: $entry->getId();
-		$thankLink = self::generateThankElement( $id, $user, $recipient, $type );
+		$thankLink = $this->generateThankElement( $id, $user, $recipient, $type );
 
 		// Add parentheses to match what's done with Thanks in revision lists and diff displays.
 		$ret .= ' ' . wfMessage( 'parentheses' )->rawParams( $thankLink )->escaped();
@@ -568,12 +523,12 @@ abstract class Hooks implements
 	 */
 	public function onEnhancedChangesListModifyLineData( $changesList, &$data, $block, $rc, &$classes, &$attribs ) {
 		if ( !in_array( 'ext.thanks.corethank', $changesList->getOutput()->getModules() ) ) {
-			self::addThanksModule( $changesList->getOutput() );
+			$this->addThanksModule( $changesList->getOutput() );
 		}
 
-		$revision = self::getRevisionForRecentChange( $rc );
+		$revision = $this->getRevisionForRecentChange( $rc );
 		if ( $revision ) {
-			self::insertThankLink(
+			$this->insertThankLink(
 				$revision,
 				$data,
 				$changesList->getUser()
@@ -583,13 +538,13 @@ abstract class Hooks implements
 
 	public function onOldChangesListRecentChangesLine( $changeslist, &$s, $rc, &$classes, &$attribs ) {
 		if ( !in_array( 'ext.thanks.corethank', $changeslist->getOutput()->getModules() ) ) {
-			self::addThanksModule( $changeslist->getOutput() );
+			$this->addThanksModule( $changeslist->getOutput() );
 		}
 
-		$revision = self::getRevisionForRecentChange( $rc );
+		$revision = $this->getRevisionForRecentChange( $rc );
 		if ( $revision ) {
 			$holder = [];
-			self::insertThankLink(
+			$this->insertThankLink(
 				$revision,
 				$holder,
 				$changeslist->getUser()
@@ -602,6 +557,29 @@ abstract class Hooks implements
 	}
 
 	/**
+	 * Fandom change UGC-4012 - Add thank link to the recent changes list
+	 *
+	 * @link https://www.mediawiki.org/wiki/Manual:EnhancedChangesListModifyBlockLineDataHook.php
+	 * @param EnhancedChangesList $changesList
+	 * @param array &$data
+	 * @param RecentChange $rc
+	 * @return void
+	 */
+	public function onEnhancedChangesListModifyBlockLineData( $changesList, &$data, $rc ): void {
+		if ( !in_array( 'ext.thanks.corethank', $changesList->getOutput()->getModules() ) ) {
+			$this->addThanksModule( $changesList->getOutput() );
+		}
+		$revision = $this->getRevisionForRecentChange( $rc );
+		if ( $revision ) {
+			$this->insertThankLink(
+				$revision,
+				$data,
+				$changesList->getUser()
+			);
+		}
+	}
+
+	/**
 	 * Convenience function to get the {@link RevisionRecord} corresponding to a RecentChanges entry.
 	 * This is an optimization to avoid triggering a query to fetch revision data for each RecentChanges entry.
 	 * Instead, the revision is constructed entirely using data from the RecentChanges entry itself (UGC-4379).
@@ -610,7 +588,7 @@ abstract class Hooks implements
 	 * @return RevisionRecord|null The {@link RevisionRecord} object corresponding to the given RecentChanges entry,
 	 * or {@code null} if the entry does not correspond to an article edit.
 	 */
-	private static function getRevisionForRecentChange( RecentChange $recentChange ): ?RevisionRecord {
+	private function getRevisionForRecentChange( RecentChange $recentChange ): ?RevisionRecord {
 		$page = $recentChange->getPage();
 		if ( $page === null ) {
 			return null;
@@ -647,13 +625,13 @@ abstract class Hooks implements
 	/**
 	 * Fandom change UGC-4012 - Add thank link to Special:Contributions page
 	 * @param ContribsPager $pager
-	 * @param string &$ret
+	 * @param string &$line
 	 * @param stdClass $row
 	 * @param array &$classes
 	 * @param array &$attribs
 	 * @return void
 	 */
-	public function onContributionsLineEnding( $pager, &$ret, $row, &$classes, &$attribs ): void {
+	public function onContributionsLineEnding( $pager, &$line, $row, &$classes, &$attribs ): void {
 		$out = RequestContext::getMain()->getOutput();
 
 		// [UGC-4257] Don't show thank links if user doesn't have specific permission
@@ -662,11 +640,11 @@ abstract class Hooks implements
 		}
 
 		if ( !in_array( 'ext.thanks.corethank', $out->getOutput()->getModules() ) ) {
-			self::addThanksModule( $out->getOutput() );
+			$this->addThanksModule( $out->getOutput() );
 		}
 		$revLookup = MediaWikiServices::getInstance()->getRevisionLookup();
 		$links = [];
-		self::insertThankLink(
+		$this->insertThankLink(
 			$revLookup->getRevisionById( $row->rev_id ),
 			$links,
 			$out->getUser()
@@ -674,7 +652,7 @@ abstract class Hooks implements
 		if ( isset( $links[0] ) ) {
 			// [UGC-4257] Wrap the thank link in a span so that it can be styled
 			$linkWithSpanParent = "<span class='mw-thanks-link-wrapper--contributions'>$links[0]</span>";
-			$ret .= $linkWithSpanParent;
+			$line .= $linkWithSpanParent;
 		}
 	}
 }

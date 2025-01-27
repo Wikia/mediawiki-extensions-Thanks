@@ -162,7 +162,7 @@
 		"PageHistoryPager::doBatchLookups": "main",
 		"ChangesListInitRows": "main",
 		"EnhancedChangesListModifyLineData": "main",
-		"EnhancedChangesListModifyBlockLineData": "MediaWiki\\Extension\\Thanks\\Hooks::onEnhancedChangesListModifyBlockLineData",
+		"EnhancedChangesListModifyBlockLineData": "main",
 		"OldChangesListRecentChangesLine":  "main",
 		"ContributionsLineEnding":  "main"
 	},

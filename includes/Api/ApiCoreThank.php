@@ -6,7 +6,7 @@ use DatabaseLogEntry;
 use LogEntry;
 use MediaWiki\Api\ApiBase;
 use MediaWiki\Api\ApiMain;
-use MediaWiki\Extension\Notifications\DiscussionParser;
+use MediaWiki\Context\RequestContext;
 use MediaWiki\Extension\Thanks\Storage\Exceptions\InvalidLogType;
 use MediaWiki\Extension\Thanks\Storage\Exceptions\LogDeleted;
 use MediaWiki\Extension\Thanks\Storage\LogStore;
@@ -19,7 +19,6 @@ use MediaWiki\Title\Title;
 use MediaWiki\User\User;
 use MediaWiki\User\UserFactory;
 use MediaWiki\User\UserIdentity;
-use RequestContext;
 use Wikimedia\ParamValidator\ParamValidator;
 use Wikimedia\ParamValidator\TypeDef\IntegerDef;
 
@@ -95,7 +94,6 @@ class ApiCoreThank extends ApiThank {
 		}
 		if ( $type === 'rev' ) {
 			$revision = $this->getRevisionFromId( $id );
-			$excerpt = DiscussionParser::getEditExcerpt( $revision, $this->getLanguage() );
 			$title = $this->getTitleFromRevision( $revision );
 			$this->dieOnUserBlockedFromTitle( $user, $title );
 
