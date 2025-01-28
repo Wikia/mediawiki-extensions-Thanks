@@ -160,16 +160,13 @@
 		"LogEventsListLineEnding": "main",
 		"PageHistoryBeforeList": "main",
 		"PageHistoryPager::doBatchLookups": "main",
-		"ChangesListInitRows": "main",
-		"EnhancedChangesListModifyLineData": "main",
-		"EnhancedChangesListModifyBlockLineData": "main",
-		"OldChangesListRecentChangesLine":  "main",
-		"ContributionsLineEnding":  "main"
+		"ChangesListInitRows": "main"
 	},
 	"HookHandlers": {
 		"main": {
 			"class": "MediaWiki\\Extension\\Thanks\\Hooks",
 			"services": [
+				"Fandom\\FandomThanks\\ThanksCache",
 				"MainConfig",
 				"GenderCache",
 				"PermissionManager",
@@ -212,9 +209,6 @@
 				"rights/rights",
 				"lock"
 			]
-		},
-		"ThanksMaxLoadThankedPeriodDays": {
-			"value": 365
 		}
 	},
 	"manifest_version": 2

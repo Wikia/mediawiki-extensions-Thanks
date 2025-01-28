@@ -3,6 +3,7 @@
 namespace MediaWiki\Extension\Thanks\Api;
 
 use DatabaseLogEntry;
+use Fandom\FandomThanks\ThanksCache;
 use LogEntry;
 use MediaWiki\Api\ApiBase;
 use MediaWiki\Api\ApiMain;
@@ -10,7 +11,6 @@ use MediaWiki\Context\RequestContext;
 use MediaWiki\Extension\Thanks\Storage\Exceptions\InvalidLogType;
 use MediaWiki\Extension\Thanks\Storage\Exceptions\LogDeleted;
 use MediaWiki\Extension\Thanks\Storage\LogStore;
-use MediaWiki\Extension\Thanks\ThanksCache;
 use MediaWiki\MediaWikiServices;
 use MediaWiki\Permissions\PermissionManager;
 use MediaWiki\Revision\RevisionRecord;
@@ -136,10 +136,7 @@ class ApiCoreThank extends ApiThank {
 		 * Fandom change - start - UGC-4533 - Cache thanks data in session in a better way
 		 * @author Mkostrzewski
 		 */
-		return ( new ThanksCache(
-			MediaWikiServices::getInstance()->getDBLoadBalancer(),
-			MediaWikiServices::getInstance()->getMainConfig()
-		) )
+		return MediaWikiServices::getInstance()->getService( ThanksCache::class )
 			->haveThanked( RequestContext::getMain(), $user->getActorId(), $id, $type );
 		// Fandom change - end
 	}
@@ -265,10 +262,8 @@ class ApiCoreThank extends ApiThank {
 		 * Fandom change - start - UGC-4533 - Cache thanks data in session in a better way
 		 * @author Mkostrzewski
 		 */
-		( new ThanksCache(
-			MediaWikiServices::getInstance()->getDBLoadBalancer(),
-			MediaWikiServices::getInstance()->getMainConfig()
-		) )->appendUserThanks( $this->getContext(), $user->getActorId(), $uniqueId );
+		MediaWikiServices::getInstance()->getService( ThanksCache::class )
+			->appendUserThanks( $this->getContext(), $user->getActorId(), $uniqueId );
 		// Fandom change - end
 		// Set success message
 		$this->markResultSuccess( $recipient->getName() );
