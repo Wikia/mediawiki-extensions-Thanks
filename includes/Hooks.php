@@ -103,8 +103,6 @@ class Hooks implements
 		$oldRevisionRecord,
 		$userIdentity
 	) {
-		$this->insertThankLink( $revisionRecord,
-			$links, $userIdentity );
 		// [UGC-4257] Don't show thank links if user doesn't have specific permission
 		if ( !ThanksPermissions::checkUserPermissionsForThanks( RequestContext::getMain()->getOutput() ) ) {
 			return;
