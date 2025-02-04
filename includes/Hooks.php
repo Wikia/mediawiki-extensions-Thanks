@@ -154,7 +154,7 @@ class Hooks implements
 	 * @param UserIdentity $userIdentity The user performing the thanks.
 	 * @param bool $isPrimaryButton whether the link/button should be progressive
 	 */
-	protected function insertThankLink(
+	private function insertThankLink(
 		RevisionRecord $revisionRecord,
 		array &$links,
 		UserIdentity $userIdentity,
